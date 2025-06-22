@@ -53,5 +53,5 @@ workflows:
         key_id: Z963JRMC83
         issuer_id: 22cf2e9e-300f-4fcf-9e67-f5a8f5ad056b
         submit_to_testflight: true
-        groups:
+        beta_groups:
           - Testing App # Replace with your TestFlight group name
