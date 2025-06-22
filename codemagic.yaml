@@ -1,0 +1,57 @@
+workflows:
+  ios-ipa-upload:
+    name: SCInsta IPA Upload to TestFlight
+    max_build_duration: 60
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.burbn.instagram
+      vars:
+        CM_CERTIFICATE: $CM_CERTIFICATE
+        CM_CERTIFICATE_PASSWORD: $CM_CERTIFICATE_PASSWORD
+        CM_PROVISIONING_PROFILE: $CM_PROVISIONING_PROFILE
+        SCINSTA_IPA_URL: "https://drive.google.com/uc?export=download&id=1IsmwFa0NDwx7iuIy84gyB6sq9Pf0eal6" # URL to pre-built IPA
+      xcode: latest
+    scripts:
+      - name: Download Pre-Built IPA
+        script: |
+          echo "Downloading SCInsta IPA..."
+          curl -L -o SCInsta.ipa "$SCINSTA_IPA_URL" || {
+            echo "Failed to download IPA from $SCINSTA_IPA_URL"
+            exit 1
+          }
+      - name: Code Sign IPA
+        script: |
+          echo "Signing IPA..."
+          mkdir -p signed
+          # Unzip IPA to modify
+          unzip SCInsta.ipa -d Payload
+          # Sign with ldid
+          ldid -S Payload/Payload/com.burbn.instagram.app || {
+            echo "ldid signing failed."
+            exit 1
+          }
+          # Re-zip IPA
+          cd Payload
+          zip -r ../signed/SCInsta.ipa . || {
+            echo "Failed to zip IPA."
+            exit 1
+          }
+      - name: Verify IPA
+        script: |
+          if [ -f "signed/SCInsta.ipa" ]; then
+            echo "IPA ready for TestFlight: signed/SCInsta.ipa"
+          else
+            echo "IPA not found!"
+            exit 1
+          fi
+    artifacts:
+      - signed/SCInsta.ipa
+    publishing:
+      app_store_connect:
+        api_key: Encrypted(Z0FBQUFBQmhnYmZoNzBjTFAtNTM0LWI0dGF6dTM2ZmdmSTA5UnpCTXBFeXNKYzNCZmRxM0xZT3cxa3I5bnRrcTZKSjUwZU5JSGtBNk1ZUkY4aDB3NWlGejk2UzFaNER4anQ0bmVEcmJqWlR2SnlWWVB5ZUx4TlYzck1TazJPaWY4alVSSktvUnV5S21UcllnZEhXN1h2ejZJUTYwLW1SWGp4TURiMUpvVGhYT1Zoei1zQi02NTAxVzlaMTJpOUhLblFuUVptMHgxOXJHLU1RLVV3dktJc0x1ZndpcVhIRnhPR01MZXdVOXFfV0t6eTRzaFN2cWNPazNqOVNDcXU5TGVZQmIwVUV0QmhJQ2hPSjRJNXhUcWo4MDRvd2RZZkxuOWpiZnJEcl9lM2FmMHNnanFqYjE2ZmdHWWxDY3ZKelFXVklBQ0hHOTRNaHRXTWplbmpfZXhVN25fZTVCRTZYdnpoQ0FWRGg5OUs5MVM3WDlEVFE2WUVMQUJBbThLRGNTN3Q0TGJMZmE3c2JuVjA0NjdUaWJjQjcwakJTeXdabWlyX3Eya1YyQWJqMFA2X3JveHdpTzNNTT0=)
+        key_id: Z963JRMC83
+        issuer_id: 22cf2e9e-300f-4fcf-9e67-f5a8f5ad056b
+        submit_to_testflight: true
+        groups:
+          - Testing App # Replace with your TestFlight group name
